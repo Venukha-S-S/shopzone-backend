@@ -4,6 +4,18 @@ from flask_sqlalchemy import SQLAlchemy
 import json, bcrypt
 
 app = Flask(__name__)
+# Add this route to app.py (after app = Flask(__name__))
+@app.route("/")
+def index():
+    return jsonify({
+        "message": "ShopZone API is running! 🚀",
+        "endpoints": [
+            "/api/products",
+            "/api/login",
+            "/api/register",
+            "/api/order"
+        ]
+    })
 CORS(app)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///shop.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
