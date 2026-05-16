@@ -16,11 +16,11 @@ def index():
             "/api/order"
         ]
     })
-CORS(app)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///shop.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SECRET_KEY"] = "shopzone-secret-2026"
-db = SQLAlchemy(app)
+CORS(app, origins=[
+    "http://localhost:5173",
+    "https://shopzone-frontend.vercel.app",  # ← your Vercel URL
+    "https://*.vercel.app"
+])
 
 # ── Models ──────────────────────────────
 class User(db.Model):
