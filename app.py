@@ -139,3 +139,87 @@ if __name__ == "__main__":
         db.create_all()
         print("Database ready!")
     app.run(debug=True, port=5000)
+    # Add these routes to your existing app.py
+
+# ── Admin: Get all orders ─────────────────────────
+@app.route("/api/admin/orders")
+def get_all_orders():
+    secret = request.headers.get("X-Admin-Secret")
+    if secret != "shopzone-admin-2026":
+        return jsonify({"error": "Unauthorized"}), 401
+
+    orders = Order.query.order_by(Order.id.desc()).all()
+    result = []
+    for o in orders:
+        result.append({
+            "id":         o.id,
+            "user_name":  o.user_name,
+            "user_email": o.user_email,
+            "total":      o.total,
+            "status":     o.status,
+            "payment_id": o.payment_id,
+            "items":      json.loads(o.items) if o.items else [],
+            "address":    o.address
+        })
+    return jsonify({"orders": result, "count": len(result)})
+
+# ── Admin: Get all users ──────────────────────────
+@app.route("/api/admin/users")
+def get_all_users():
+    secret = request.headers.get("X-Admin-Secret")
+    if secret != "shopzone-admin-2026":
+        return jsonify({"error": "Unauthorized"}), 401
+
+    users = User.query.all()
+    result = [{
+        "id":    u.id,
+        "name":  u.name,
+        "email": u.email
+    } for u in users]
+    return jsonify({"users": result, "count": len(result)})
+
+# ── Admin: Update order status ────────────────────
+@app.route("/api/admin/orders/<int:oid>", methods=["PUT"])
+def update_order_status(oid):
+    secret = request.headers.get("X-Admin-Secret")
+    if secret != "shopzone-admin-2026":
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data  = request.get_json()
+    order = Order.query.get_or_404(oid)
+    order.status = data.get("status", order.status)
+    db.session.commit()
+    return jsonify({"success": True, "status": order.status})
+
+# ── Admin: Delete order ───────────────────────────
+@app.route("/api/admin/orders/<int:oid>", methods=["DELETE"])
+def delete_order(oid):
+    secret = request.headers.get("X-Admin-Secret")
+    if secret != "shopzone-admin-2026":
+        return jsonify({"error": "Unauthorized"}), 401
+
+    order = Order.query.get_or_404(oid)
+    db.session.delete(order)
+    db.session.commit()
+    return jsonify({"success": True})
+
+# ── Admin: Stats ──────────────────────────────────
+@app.route("/api/admin/stats")
+def get_stats():
+    secret = request.headers.get("X-Admin-Secret")
+    if secret != "shopzone-admin-2026":
+        return jsonify({"error": "Unauthorized"}), 401
+
+    orders      = Order.query.all()
+    total_rev   = sum(o.total or 0 for o in orders)
+    paid_orders = [o for o in orders if o.status == "paid"]
+    users_count = User.query.count()
+
+    return jsonify({
+        "total_orders":   len(orders),
+        "total_revenue":  round(total_rev, 2),
+        "paid_orders":    len(paid_orders),
+        "total_users":    users_count,
+        "pending_orders": len([o for o in orders
+                                if o.status == "pending"])
+    })
